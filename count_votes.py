@@ -1,6 +1,7 @@
 import argparse
 
 from pathlib import Path
+from textwrap import dedent
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -8,52 +9,34 @@ import seaborn as sns
 
 from matplotlib import ticker
 
+from utils import parse_tokens, parse_google_form, filter_valid, count_votes_simple
 
-def parse_tokens(token_file: Path):
-    with token_file.open() as tokens:
-        return set(t.strip() for t in tokens.readlines())
+parser = argparse.ArgumentParser(
+    description=dedent("""
+    Add up votes for resolutions
 
+    This script assumes that a Google form was created with a question
+    on it set up in the following way:
 
-def parse_google_form(csv_file: Path, token_col: str = "Voting Token"):
-    """
-    This function assumes a certain format for the CSV file where
-    there is a column containing the voting token used, and then a
-    column for each independent vote held.
+      - Multiple-choice grid
+      - Require a response in each row
 
-    The resolution columns must contain the short name for the
-    resolution in square brackets.
-    """
-    votes = pd.read_csv(csv_file)
-    votes = votes.set_index(token_col).drop(columns=["Timestamp"])
-    votes.columns = votes.columns.str.replace(r".*\[(.*)\].*", lambda m: m.group(1), regex=True)
-    return votes
-
-
-def filter_valid(df: pd.DataFrame, tokens: set[str]):
-    """Filter out invalid tokens"""
-    valid = df.loc[df.index.intersection(tokens)]
-    invalid = df.loc[df.index.difference(tokens)]
-    return valid, invalid
-
-
-def count_votes_simple(this_vote: pd.Series):
-    # If a person voted more than once, only the last vote is counted
-    keep_votes = this_vote[~this_vote.index.duplicated(keep="last")]
-    vote_counts = keep_votes.value_counts()
-    approve = vote_counts.get("Approve", 0)
-    reject = vote_counts.get("Reject", 0)
-    abstain = vote_counts.get("Abstain", 0)
-    votes_cast = approve + reject
-    return approve, reject, abstain, votes_cast
-
-
-parser = argparse.ArgumentParser(description="Add up votes for resolutions")
+    The name of that question should be passed to this script as `question`.
+    """).strip(),
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+)
 parser.add_argument("ballots", type=Path, help="The CSV from Google Forms")
 parser.add_argument("tokens", type=Path, help="The token file")
+parser.add_argument("question", type=str, help="The question name on the form")
+parser.add_argument("--token_col", type=str, help="The column in the CSV containing the voting token", default="Voting Token")
 args = parser.parse_args()
 
-votes = parse_google_form(args.ballots)
+votes = parse_google_form(args.ballots, token_col=args.token_col)
 valid_tokens = parse_tokens(args.tokens)
+
+votes = votes.loc[:, votes.columns.str.startswith(f"{args.question} [")]
+votes.columns = votes.columns.str.replace(r".*\[(.*)\].*", lambda m: m.group(1), regex=True)
+
 
 valid_votes, invalid_votes = filter_valid(votes, valid_tokens)
 
