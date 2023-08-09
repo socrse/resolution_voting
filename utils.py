@@ -23,6 +23,7 @@ def parse_tokens(token_file: Path):
 
 def parse_google_form(csv_file: Path, token_col: str):
     votes = pd.read_csv(csv_file)
+    votes.drop_duplicates(subset=[token_col], keep='last', inplace=True)
     votes = votes.set_index(token_col).drop(columns=["Timestamp"])
     return votes
 
