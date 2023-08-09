@@ -32,5 +32,5 @@ valid_votes, invalid_votes = filter_valid(votes, valid_tokens)
 
 print(f"Running election for {args.seats} seats")
 
-result = run_stv(valid_votes, "Rank candidates", args.seats)
+result = run_stv(valid_votes, args.question, args.seats)
 print(result)
