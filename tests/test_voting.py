@@ -16,6 +16,8 @@ def test_parse_csv(simple_file):
     assert pd.api.types.is_string_dtype(simple_file.index)
     assert simple_file.index.is_unique
     assert all(pd.api.types.is_string_dtype(c) for _, c in simple_file.items())
+    assert "Resolutions" in simple_file.columns
+    assert "Resolution 1" in simple_file["Resolutions"]
 
 
 def test_stv(simple_file):
