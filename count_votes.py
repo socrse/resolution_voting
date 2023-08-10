@@ -20,6 +20,8 @@ parser = argparse.ArgumentParser(
 
       - Multiple-choice grid
       - Require a response in each row
+      - There should be a row for each resolution and three columns
+        named "Approve", "Reject" and "Abstain"
 
     The name of that question should be passed to this script as `question`.
     """).strip(),

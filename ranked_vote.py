@@ -14,6 +14,8 @@ parser = argparse.ArgumentParser(
       - Multiple-choice grid
       - Limit to one response per colum
       - Require a response in each row
+      - Columns must be integers with 1 being the first choice and
+        higher numbers being less-preferred.
 
     The name of that question should be passed to this script as `question`.
     """).strip(),
