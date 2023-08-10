@@ -1,12 +1,13 @@
+import re
 from pathlib import Path
 
 import pandas as pd
 import pyrankvote as rv
 
 
-def run_stv(votes: pd.DataFrame, question, seats):
-    votes = votes.loc[:, votes.columns.str.startswith(f"{question} [")]
-    votes.columns = votes.columns.str.replace(r".*\[(.*)\].*", lambda m: m.group(1), regex=True)
+def run_stv(votes: pd.DataFrame, question: str, seats: int) -> rv.helpers.ElectionResults:
+    votes = votes[question]
+    votes = votes.astype(int)
 
     candidates = {c: rv.Candidate(c) for c in votes.columns}
 
@@ -16,26 +17,39 @@ def run_stv(votes: pd.DataFrame, question, seats):
     return r
 
 
-def parse_tokens(token_file: Path):
+def parse_tokens(token_file: Path) -> set[str]:
     with token_file.open() as tokens:
         return set(t.strip() for t in tokens.readlines())
 
 
-def parse_google_form(csv_file: Path, token_col: str):
+def parse_google_form(csv_file: Path, token_col: str) -> pd.DataFrame:
     votes = pd.read_csv(csv_file, dtype=str, keep_default_na=False)
     votes = votes.drop_duplicates(subset=[token_col], keep="last")
     votes = votes.set_index(token_col).drop(columns=["Timestamp"])
+    headers = []
+    for c in votes.columns:
+        m = re.match(r"(?:(.*) \[(.*)\])|(.*)", c)
+        if m is None:
+            raise ValueError(f"Column '{c}' does not match expected pattern")
+        g = m.groups()
+        if g[2] is not None:
+            g = (g[2], g[2])
+        else:
+            g = g[0:2]
+        headers.append(g)
+    headers = pd.MultiIndex.from_tuples(headers)
+    votes.columns = headers
     return votes
 
 
-def filter_valid(df: pd.DataFrame, tokens: set[str]):
+def filter_valid(df: pd.DataFrame, tokens: set[str]) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Filter out invalid tokens"""
     valid = df.loc[df.index.intersection(tokens)]
     invalid = df.loc[df.index.difference(tokens)]
     return valid, invalid
 
 
-def count_votes_simple(this_vote: pd.Series):
+def count_votes_simple(this_vote: pd.Series) -> tuple[int, int, int, int]:
     # If a person voted more than once, only the last vote is counted
     keep_votes = this_vote[~this_vote.index.duplicated(keep="last")]
     vote_counts = keep_votes.value_counts()

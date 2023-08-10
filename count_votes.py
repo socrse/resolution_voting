@@ -36,19 +36,17 @@ args = parser.parse_args()
 votes = parse_google_form(args.ballots, token_col=args.token_col)
 valid_tokens = parse_tokens(args.tokens)
 
-votes = votes.loc[:, votes.columns.str.startswith(f"{args.question} [")]
-votes.columns = votes.columns.str.replace(r".*\[(.*)\].*", lambda m: m.group(1), regex=True)
-
+votes = votes[args.question]
 
 valid_votes, invalid_votes = filter_valid(votes, valid_tokens)
 
 # Tally up each resolution
-resolutions = {}
+resolution_counts = {}
 for resolution in valid_votes.columns:
     this_vote = valid_votes[resolution]
-    resolutions[resolution] = count_votes_simple(this_vote)
+    resolution_counts[resolution] = count_votes_simple(this_vote)
 
-resolutions = pd.DataFrame(resolutions, index=["approve", "reject", "abstain", "total"]).transpose()
+resolutions = pd.DataFrame(resolution_counts, index=["approve", "reject", "abstain", "total"]).transpose()
 resolutions["total_votes"] = resolutions["approve"] + resolutions["reject"]
 resolutions["approve_percent"] = (resolutions["approve"] / resolutions["total_votes"]) * 100
 resolutions["reject_percent"] = (resolutions["reject"] / resolutions["total_votes"]) * 100
