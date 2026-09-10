@@ -26,13 +26,17 @@ parser.add_argument("tokens", type=Path, help="The token file")
 parser.add_argument("question", type=str, help="The question name on the form")
 parser.add_argument("seats", type=int, help="Number of seats to elect")
 parser.add_argument("--token_col", type=str, help="The column in the CSV containing the voting token", default="Voting Token")
+parser.add_argument("--token_map", type=Path, default=None,
+                    help="A two column CSV file mapping old to new tokens. Column headings must be 'old' and 'new'")
 args = parser.parse_args()
 
-votes = parse_google_form(args.ballots, token_col=args.token_col)
+votes = parse_google_form(args.ballots, token_col=args.token_col, token_map=args.token_map)
 valid_tokens = parse_tokens(args.tokens)
 valid_votes, invalid_votes = filter_valid(votes, valid_tokens)
 
-print(f"Running election for {args.seats} seats")
+print(f"Running election for {args.seats} seats with {len(valid_votes)} valid votes ({len(invalid_votes)} invalid)")
+if len(invalid_votes) > 0:
+  print("Invalid tokens:", invalid_votes)
 
 result = run_stv(valid_votes, args.question, args.seats)
 print(result)

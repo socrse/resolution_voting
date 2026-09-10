@@ -30,3 +30,10 @@ def test_stv(simple_file):
 def test_simple(simple_file):
     res = count_votes_simple(simple_file["Resolutions"]["Resolution 1"])
     assert res == (2, 3, 2, 5)
+
+
+def test_token_map():
+    test_dir = Path(__file__).resolve().parent
+    votes = parse_google_form(test_dir / "votes.csv", "Token", test_dir / "map.csv")
+    assert (votes.index[:3] == ["new1", "new2", "new3"]).all()
+    assert votes.index[3] == "hfgdhdfg"

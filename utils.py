@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 import pyrankvote as rv
@@ -22,8 +23,14 @@ def parse_tokens(token_file: Path) -> set[str]:
         return set(t.strip() for t in tokens.readlines())
 
 
-def parse_google_form(csv_file: Path, token_col: str) -> pd.DataFrame:
+def parse_google_form(csv_file: Path, token_col: str, token_map: Optional[Path]=None) -> pd.DataFrame:
     votes = pd.read_csv(csv_file, dtype=str, keep_default_na=False)
+    votes[token_col] = votes[token_col].str.strip()
+    if token_map:
+        token_mapping = pd.read_csv(token_map, dtype=str)
+        assert (token_mapping.columns == ["old", "new"]).all()
+        token_mapping = token_mapping.set_index("old").to_dict()["new"]
+        votes[token_col] = votes[token_col].replace(token_mapping)
     votes = votes.drop_duplicates(subset=[token_col], keep="last")
     votes = votes.set_index(token_col).drop(columns=["Timestamp"])
     headers = []
